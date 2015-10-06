@@ -1,9 +1,6 @@
 package com.example.xyzreader.ui;
 
-import android.app.Fragment;
-import android.app.LoaderManager;
 import android.content.Intent;
-import android.content.Loader;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Color;
@@ -13,7 +10,10 @@ import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.CollapsingToolbarLayout;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.LoaderManager;
 import android.support.v4.app.ShareCompat;
+import android.support.v4.content.Loader;
 import android.support.v7.app.ActionBar;
 import android.support.v7.graphics.Palette;
 import android.support.v7.widget.Toolbar;
@@ -54,6 +54,8 @@ public class ArticleDetailFragment extends Fragment implements
     private int mTopInset;
     private int mScrollY;
     private int mStatusBarFullOpacityBottom;
+    private Toolbar toolbar;
+    private TextView bylineView;
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
@@ -62,9 +64,11 @@ public class ArticleDetailFragment extends Fragment implements
     public ArticleDetailFragment() {
     }
 
-    public static ArticleDetailFragment newInstance(long itemId) {
+    public static ArticleDetailFragment newInstance(long itemId, String... elementTransitionsNames)
+    {
         Bundle arguments = new Bundle();
         arguments.putLong(ARG_ITEM_ID, itemId);
+
         ArticleDetailFragment fragment = new ArticleDetailFragment();
         fragment.setArguments(arguments);
         return fragment;
@@ -102,6 +106,7 @@ public class ArticleDetailFragment extends Fragment implements
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+
         mRootView = inflater.inflate(R.layout.fragment_article_detail, container, false);
         mDrawInsetsFrameLayout = (DrawInsetsFrameLayout)
                 mRootView.findViewById(R.id.draw_insets_frame_layout);
@@ -112,7 +117,12 @@ public class ArticleDetailFragment extends Fragment implements
             }
         });
 
+
         mPhotoView = (DynamicHeightNetworkImageView) mRootView.findViewById(R.id.photo);
+
+        toolbar = (Toolbar) mRootView.findViewById(R.id.toolbar);
+
+        bylineView = (TextView) mRootView.findViewById(R.id.article_byline);
 
         mStatusBarColorDrawable = new ColorDrawable(0);
 
@@ -165,24 +175,21 @@ public class ArticleDetailFragment extends Fragment implements
             return;
         }
 
-        Toolbar mToolbar = (Toolbar) mRootView.findViewById(R.id.toolbar);
-        getActivityCast().setSupportActionBar(mToolbar);
+        getActivityCast().setSupportActionBar(toolbar);
 
-        final TextView bylineView = (TextView) mRootView.findViewById(R.id.article_byline);
         bylineView.setMovementMethod(new LinkMovementMethod());
         TextView bodyView = (TextView) mRootView.findViewById(R.id.article_body);
         bodyView.setTypeface(Typeface.createFromAsset(getResources().getAssets(),
                 "Rosario-Regular.ttf"));
 
         if (mCursor != null) {
-            mRootView.setAlpha(0);
             mRootView.setVisibility(View.VISIBLE);
-            mRootView.animate().alpha(1);
-
             CollapsingToolbarLayout layoutCollapsing = (CollapsingToolbarLayout) mRootView.
                     findViewById(R.id.layoutCollapsing);
 
             layoutCollapsing.setTitle(mCursor.getString(ArticleLoader.Query.TITLE));
+
+            Log.d(this.getClass().getSimpleName(), mCursor.getString(ArticleLoader.Query.TITLE));
 
             ActionBar bar = getActivityCast().getSupportActionBar();
 
@@ -213,21 +220,16 @@ public class ArticleDetailFragment extends Fragment implements
 
             imageLoader.get(mCursor.getString(ArticleLoader.Query.PHOTO_URL), new ImageLoader.ImageListener() {
                 @Override
-                public void onResponse(ImageLoader.ImageContainer imageContainer, boolean b)
-                {
-                    if(!ArticleDetailFragment.this.isDetached())
-                    {
+                public void onResponse(ImageLoader.ImageContainer imageContainer, boolean b) {
+                    if (!ArticleDetailFragment.this.isDetached()) {
                         Bitmap bitmap = imageContainer.getBitmap();
                         if (bitmap != null) {
                             Palette p = Palette.from(bitmap).generate();
 
                             int color;
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
-                            {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                                 color = getResources().getColor(R.color.muted_color, null);
-                            }
-                            else
-                            {
+                            } else {
                                 //noinspection deprecation
                                 color = getResources().getColor(R.color.muted_color);
                             }
@@ -243,10 +245,13 @@ public class ArticleDetailFragment extends Fragment implements
 
                 }
             });
-        } else {
+            getActivityCast().supportStartPostponedEnterTransition();
+        }
+        else {
             mRootView.setVisibility(View.GONE);
             bylineView.setText("N/A");
             bodyView.setText("N/A");
+//            getActivityCast().supportStartPostponedEnterTransition();
         }
     }
 
@@ -280,9 +285,4 @@ public class ArticleDetailFragment extends Fragment implements
         bindViews();
     }
 
-    @Override
-    public void onDetach() {
-        super.onDetach();
-
-    }
 }

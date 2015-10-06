@@ -8,4 +8,8 @@
     <string name="action_share">Share</string>
 
     <string name="up">Up</string>
+    <string name="subtitle_format">%1$s by %2$s</string>
+    <string name="imageTransitionName" translatable="false">image_transition</string>
+    <string name="titleTransitionName" translatable="false">title_transition</string>
+    <string name="subtitleTransitionName" translatable="false">subtitle_transition</string>
 </resources>
