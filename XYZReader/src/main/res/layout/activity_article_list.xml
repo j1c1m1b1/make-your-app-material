@@ -15,6 +15,7 @@
         android:layout_marginEnd="@dimen/list_toolbar_side_margin"
         android:elevation="4dp"
         app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        app:behavior_overlapTop="16dp"
         >
 
         <android.support.v7.widget.RecyclerView
@@ -30,8 +31,9 @@
     </android.support.v4.widget.SwipeRefreshLayout>
 
     <android.support.design.widget.AppBarLayout
+        android:id="@+id/appBarLayout"
         android:layout_width="match_parent"
-        android:layout_height="112dp"
+        android:layout_height="128dp"
         android:layout_marginLeft="@dimen/list_toolbar_side_margin"
         android:layout_marginStart="@dimen/list_toolbar_side_margin"
         android:layout_marginRight="@dimen/list_toolbar_side_margin"
@@ -44,6 +46,7 @@
             android:layout_height="match_parent"
             android:fitsSystemWindows="true"
             app:layout_scrollFlags="scroll|exitUntilCollapsed"
+            app:expandedTitleMarginBottom="16dp"
             android:elevation="8dp">
 
             <android.support.v7.widget.Toolbar

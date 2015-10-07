@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.database.Cursor;
 import android.os.Bundle;
+import android.support.design.widget.AppBarLayout;
 import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.Loader;
@@ -20,6 +21,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
 import com.example.xyzreader.R;
 import com.example.xyzreader.data.ArticleLoader;
 import com.example.xyzreader.data.ItemsContract;
@@ -36,6 +38,8 @@ public class ArticleListActivity extends AppCompatActivity implements
 
     private SwipeRefreshLayout mSwipeRefreshLayout;
     private RecyclerView mRecyclerView;
+    private AppBarLayout appBarLayout;
+    private AppBarLayout.OnOffsetChangedListener onOffsetChangedListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,7 +51,17 @@ public class ArticleListActivity extends AppCompatActivity implements
 
         mSwipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
 
-        mSwipeRefreshLayout.setColorSchemeResources(R.color.theme_primary_dark, R.color.theme_accent);
+        mSwipeRefreshLayout.setColorSchemeResources(R.color.theme_primary_dark,
+                R.color.theme_accent);
+
+        appBarLayout = (AppBarLayout)findViewById(R.id.appBarLayout);
+
+        onOffsetChangedListener = new AppBarLayout.OnOffsetChangedListener() {
+            @Override
+            public void onOffsetChanged(AppBarLayout appBarLayout, int verticalOffset) {
+                mSwipeRefreshLayout.setEnabled(verticalOffset == 0);
+            }
+        };
 
         mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
         getSupportLoaderManager().initLoader(0, null, this);
@@ -72,6 +86,18 @@ public class ArticleListActivity extends AppCompatActivity implements
     protected void onStop() {
         super.onStop();
         unregisterReceiver(mRefreshingReceiver);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        appBarLayout.addOnOffsetChangedListener(onOffsetChangedListener);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        appBarLayout.removeOnOffsetChangedListener(onOffsetChangedListener);
     }
 
     private boolean mIsRefreshing = false;
@@ -104,8 +130,6 @@ public class ArticleListActivity extends AppCompatActivity implements
         StaggeredGridLayoutManager sglm =
                 new StaggeredGridLayoutManager(columnCount, StaggeredGridLayoutManager.VERTICAL);
         mRecyclerView.setLayoutManager(sglm);
-
-//        supportStartPostponedEnterTransition();
     }
 
     @Override
@@ -149,7 +173,6 @@ public class ArticleListActivity extends AppCompatActivity implements
                                     Pair.create((View)vh.subtitleView, subtitleTransitionName));
 
                     startActivity(intent, optionsCompat.toBundle());
-                    supportPostponeEnterTransition();
                 }
             });
             return vh;
@@ -172,9 +195,10 @@ public class ArticleListActivity extends AppCompatActivity implements
 
             holder.subtitleView.setText(subtitle);
 
-            holder.thumbnailView.setImageUrl(
-                    mCursor.getString(ArticleLoader.Query.THUMB_URL),
-                    ImageLoaderHelper.getInstance(ArticleListActivity.this).getImageLoader());
+            Glide.with(ArticleListActivity.this)
+                    .load(mCursor.getString(ArticleLoader.Query.THUMB_URL))
+                    .into(holder.thumbnailView);
+
             holder.thumbnailView.setAspectRatio(mCursor.getFloat(ArticleLoader.Query.ASPECT_RATIO));
         }
 
@@ -185,13 +209,13 @@ public class ArticleListActivity extends AppCompatActivity implements
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        public DynamicHeightNetworkImageView thumbnailView;
+        public AspectRatioImageView thumbnailView;
         public TextView titleView;
         public TextView subtitleView;
 
         public ViewHolder(View view) {
             super(view);
-            thumbnailView = (DynamicHeightNetworkImageView) view.findViewById(R.id.thumbnail);
+            thumbnailView = (AspectRatioImageView) view.findViewById(R.id.thumbnail);
             titleView = (TextView) view.findViewById(R.id.article_title);
             subtitleView = (TextView) view.findViewById(R.id.article_subtitle);
         }

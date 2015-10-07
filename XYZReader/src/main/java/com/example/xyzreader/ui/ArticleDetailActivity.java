@@ -1,20 +1,32 @@
 package com.example.xyzreader.ui;
 
+import android.content.Intent;
 import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.design.widget.CollapsingToolbarLayout;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentStatePagerAdapter;
 import android.support.v4.app.LoaderManager;
+import android.support.v4.app.ShareCompat;
 import android.support.v4.content.Loader;
 import android.support.v4.view.ViewPager;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
+import android.text.method.LinkMovementMethod;
 import android.util.TypedValue;
 import android.view.View;
-import android.widget.FrameLayout;
+import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.animation.GlideAnimation;
+import com.bumptech.glide.request.target.SimpleTarget;
 import com.example.xyzreader.R;
 import com.example.xyzreader.data.ArticleLoader;
 import com.example.xyzreader.data.ItemsContract;
@@ -27,11 +39,14 @@ public class ArticleDetailActivity extends AppCompatActivity
 
     private Cursor mCursor;
 
-    private long mStartId;
     private long mSelectedItemId;
-    private int mSelectedItemUpButtonFloor = Integer.MAX_VALUE;
-    private int mTopInset;
+
+    private TextView bylineView;
     private ViewPager mPager;
+    private CollapsingToolbarLayout layoutCollapsing;
+    private AspectRatioImageView mPhotoView;
+    private FloatingActionButton shareFab;
+
     private MyPagerAdapter mPagerAdapter;
     private ViewPager.SimpleOnPageChangeListener onPageChangeListener;
 
@@ -45,18 +60,31 @@ public class ArticleDetailActivity extends AppCompatActivity
         }
         setContentView(R.layout.activity_article_detail);
 
-        int statusBarHeight = getStatusBarHeight();
+        supportPostponeEnterTransition();
 
-        getSupportLoaderManager().initLoader(0, null, this);
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        ActionBar bar = getSupportActionBar();
+
+        if(bar != null)
+        {
+            bar.setDisplayHomeAsUpEnabled(true);
+        }
+
+        layoutCollapsing =
+                (CollapsingToolbarLayout)findViewById(R.id.layoutCollapsing);
+
+
+        bylineView = (TextView) findViewById(R.id.article_byline);
+
+        bylineView.setMovementMethod(new LinkMovementMethod());
+
+        mPhotoView = (AspectRatioImageView) findViewById(R.id.photo);
+
+        shareFab = (FloatingActionButton)findViewById(R.id.share_fab);
 
         mPagerAdapter = new MyPagerAdapter(getSupportFragmentManager());
         mPager = (ViewPager) findViewById(R.id.pager);
-
-        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) mPager.getLayoutParams();
-
-        params.topMargin = statusBarHeight;
-
-        mPager.setLayoutParams(params);
 
         mPager.setAdapter(mPagerAdapter);
         mPager.setPageMargin((int) TypedValue
@@ -64,13 +92,6 @@ public class ArticleDetailActivity extends AppCompatActivity
         mPager.setPageMarginDrawable(new ColorDrawable(0x22000000));
 
         onPageChangeListener = new ViewPager.SimpleOnPageChangeListener() {
-            @Override
-            public void onPageScrollStateChanged(int state) {
-                super.onPageScrollStateChanged(state);
-//                mUpButton.animate()
-//                        .alpha((state == ViewPager.SCROLL_STATE_IDLE) ? 1f : 0f)
-//                        .setDuration(300);
-            }
 
             @Override
             public void onPageSelected(int position) {
@@ -85,25 +106,51 @@ public class ArticleDetailActivity extends AppCompatActivity
 
         if (savedInstanceState == null) {
             if (getIntent() != null && getIntent().getData() != null) {
-                mStartId = ItemsContract.Items.getItemId(getIntent().getData());
-                mSelectedItemId = mStartId;
+                mSelectedItemId = ItemsContract.Items.getItemId(getIntent().getData());
             }
         }
+
+        getSupportLoaderManager().initLoader(0, null, this);
+    }
+
+    public void bindViews(String title, CharSequence byline, String photoUrl)
+    {
+        layoutCollapsing.setTitle(title);
+
+        bylineView.setText(byline);
+
+        final String shareText = String.format(getString(R.string.share_text_format), title);
+
+        shareFab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                startActivity(Intent
+                        .createChooser(ShareCompat.IntentBuilder.from(ArticleDetailActivity.this)
+                                .setType("text/plain")
+                                .setText(shareText)
+                                .getIntent(), getString(R.string.action_share)));
+            }
+        });
+
+        Glide.with(this).load(photoUrl).asBitmap().into(new SimpleTarget<Bitmap>() {
+            @Override
+            public void onResourceReady(Bitmap resource, GlideAnimation<? super Bitmap> glideAnimation) {
+                mPhotoView.setImageBitmap(resource);
+                supportStartPostponedEnterTransition();
+            }
+
+            @Override
+            public void onLoadFailed(Exception e, Drawable errorDrawable) {
+                super.onLoadFailed(e, errorDrawable);
+                supportStartPostponedEnterTransition();
+            }
+        });
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         mPager.removeOnPageChangeListener(onPageChangeListener);
-    }
-
-    public int getStatusBarHeight() {
-        int result = 0;
-        int resourceId = getResources().getIdentifier("status_bar_height", "dimen", "android");
-        if (resourceId > 0) {
-            result = getResources().getDimensionPixelSize(resourceId);
-        }
-        return result;
     }
 
     @Override
@@ -114,22 +161,21 @@ public class ArticleDetailActivity extends AppCompatActivity
     @Override
     public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
         mCursor = cursor;
+        mCursor.moveToFirst();
         mPagerAdapter.notifyDataSetChanged();
 
-        // Select the start ID
-        if (mStartId > 0) {
-            mCursor.moveToFirst();
-            // TODO: optimize
-            while (!mCursor.isAfterLast()) {
-                if (mCursor.getLong(ArticleLoader.Query._ID) == mStartId) {
-                    final int position = mCursor.getPosition();
-                    mPager.setCurrentItem(position, false);
-                    break;
-                }
-                mCursor.moveToNext();
+        int position = 0;
+        while(!mCursor.isAfterLast())
+        {
+            if (mCursor.getLong(ArticleLoader.Query._ID) == mSelectedItemId) {
+                position = mCursor.getPosition();
+                mPager.setCurrentItem(position, false);
+                break;
             }
-            mStartId = 0;
+            mCursor.moveToNext();
         }
+
+        mCursor.moveToPosition(position);
     }
 
     @Override
@@ -145,10 +191,8 @@ public class ArticleDetailActivity extends AppCompatActivity
 
         @Override
         public Fragment getItem(int position) {
-            mCursor.moveToPosition(position);
-
             return ArticleDetailFragment
-                    .newInstance(mCursor.getLong(ArticleLoader.Query._ID));
+                    .newInstance(mSelectedItemId);
         }
 
         @Override
@@ -156,10 +200,5 @@ public class ArticleDetailActivity extends AppCompatActivity
             return (mCursor != null) ? mCursor.getCount() : 0;
         }
 
-    }
-
-    @Override
-    public void onBackPressed() {
-        onNavigateUp();
     }
 }

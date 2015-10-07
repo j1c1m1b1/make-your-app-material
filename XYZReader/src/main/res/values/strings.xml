@@ -9,6 +9,10 @@
 
     <string name="up">Up</string>
     <string name="subtitle_format">%1$s by %2$s</string>
+
+    <string name="share_text_format">Take a look to at this article: %1$s</string>
+
+    <!--Transition names-->
     <string name="imageTransitionName" translatable="false">image_transition</string>
     <string name="titleTransitionName" translatable="false">title_transition</string>
     <string name="subtitleTransitionName" translatable="false">subtitle_transition</string>
