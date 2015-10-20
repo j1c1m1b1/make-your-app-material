@@ -4,11 +4,12 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <android.support.design.widget.AppBarLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="@dimen/detail_photo_height"
         android:layout_marginLeft="@dimen/list_toolbar_side_margin"
         android:layout_marginStart="@dimen/list_toolbar_side_margin"
         android:layout_marginRight="@dimen/list_toolbar_side_margin"
         android:layout_marginEnd="@dimen/list_toolbar_side_margin"
+        android:elevation="8dp"
         android:background="@color/photo_placeholder"
         android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
 
@@ -17,7 +18,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:fitsSystemWindows="true"
-            android:elevation="8dp"
             app:layout_scrollFlags="scroll|exitUntilCollapsed"
             app:contentScrim="?attr/colorPrimary"
             app:expandedTitleMarginBottom="56dp"
@@ -34,6 +34,7 @@
                 <com.example.xyzreader.ui.AspectRatioImageView
                     android:id="@+id/photo"
                     android:layout_width="match_parent"
+                    android:maxHeight="@dimen/detail_photo_height"
                     android:layout_height="0dp"
                     android:scaleType="centerCrop"
                     android:fitsSystemWindows="true"
@@ -45,7 +46,7 @@
 
             <com.example.xyzreader.ui.ScrimView
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"/>
+                android:layout_height="@dimen/detail_photo_height"/>
 
             <TextView
                 android:id="@+id/article_byline"
